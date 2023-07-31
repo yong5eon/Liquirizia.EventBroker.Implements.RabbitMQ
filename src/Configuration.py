@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker.Configuration import Configuration as ConfigurationBase
+from Liquirizia.EventBroker import Configuration as ConfigurationBase
 
 from pika import SSLOptions
 from ssl import create_default_context
