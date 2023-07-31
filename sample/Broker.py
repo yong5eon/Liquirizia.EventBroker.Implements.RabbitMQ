@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventBroker import EventBrokerHelper
-# from Liquirizia.EventBroker.Implements.RabbitMQ import (
-from src import (
+from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Configuration,
 	Connection,
 )

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventBroker import EventBrokerHelper, Callback
-# from Liquirizia.EventBroker.Implements.RabbitMQ import (
-from src import (
+from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Configuration,
 	Connection,
 	Event,
@@ -22,17 +21,6 @@ if __name__ == '__main__':
 	)
 
 	broker = EventBrokerHelper.Get('Sample')
-
-	topic = broker.topic()
-	topic.declare('topic.sample', alter='topic.error.route', persistent=False)
-
-	queue = broker.queue()
-	queue.declare('queue.error', persistent=False)
-	queue.bind('topic.error.route', '*')
-
-	queue = broker.queue()
-	queue.declare('queue.sample', errorQueue='queue.error', persistent=False)
-	queue.bind('topic.sample', 'event.sample')
 
 	class SampleCallback(Callback):
 		def __call__(self, event: Event):
