@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventBroker import Response as ResponseBase
-from Liquirizia.EventBroker.Serializer import SerializerHelper
+
+from Liquirizia.Serializer import SerializerHelper
 
 __all__ = (
 	'Response'

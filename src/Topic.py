@@ -3,8 +3,8 @@
 from Liquirizia.EventBroker import Topic as TopicBase, Error
 from Liquirizia.EventBroker.Errors import *
 
-from Liquirizia.EventBroker.Serializer import SerializerHelper
-from Liquirizia.EventBroker.Serializer.Errors import (
+from Liquirizia.Serializer import SerializerHelper
+from Liquirizia.Serializer.Errors import (
 	NotSupportedError as SerializerNotSupportedError,
 	EncodeError as SerializerEncodeError,
 )

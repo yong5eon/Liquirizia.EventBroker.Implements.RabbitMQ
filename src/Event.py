@@ -3,7 +3,7 @@
 from Liquirizia.EventBroker import Event as EventBase, Error
 from Liquirizia.EventBroker.Errors import *
 
-from Liquirizia.EventBroker.Serializer import SerializerHelper
+from Liquirizia.Serializer import SerializerHelper
 
 from pika.exceptions import *
 

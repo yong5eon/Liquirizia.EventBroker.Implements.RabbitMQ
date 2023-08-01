@@ -6,6 +6,7 @@ from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Connection,
 	Event,
 )
+import Liquirizia.Seriailzer.Implements.Text
 
 if __name__ == '__main__':
 
