@@ -16,8 +16,9 @@ class Event(EventBase):
 	"""
 	Event of Event Broker for RabbitMQ
 	"""
-	def __init__(self, channel, consumer, transaction, properties, body):
+	def __init__(self, channel, queue, consumer, transaction, properties, body):
 		self.channel = channel
+		self.queue = queue
 		self.consumer = consumer
 		self.transaction = transaction
 		self.properties = properties
@@ -32,10 +33,10 @@ class Event(EventBase):
 
 	def __repr__(self):
 		return '{} - {} - {}, {}'.format(
-			self.properties['type'],
+			self.properties.type,
 			self.length,
-			self.properties['content_type'],
-			self.properties['content_encoding']
+			self.properties.content_type,
+			self.properties.content_encoding
 		)
 
 	def ack(self):
@@ -87,7 +88,7 @@ class Event(EventBase):
 
 	@property
 	def src(self):
-		return self.consumer
+		return self.queue
 
 	@property
 	def id(self):

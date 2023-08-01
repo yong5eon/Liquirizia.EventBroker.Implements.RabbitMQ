@@ -25,10 +25,10 @@ class Response(ResponseBase):
 
 	def __repr__(self):
 		return '{} - {} - {}, {}'.format(
-			self.properties['type'],
+			self.properties.type,
 			self.length,
-			self.properties['content_type'],
-			self.properties['content_encoding']
+			self.properties.content_type,
+			self.properties.content_encoding
 		)
 
 	def headers(self):
