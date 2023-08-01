@@ -172,7 +172,7 @@ class Queue(QueueBase):
 			raise Error(str(e), error=e)
 		return
 
-	def recv(self, timeout: int = None):
+	def receive(self, timeout: int = None):
 		try:
 			method, properties, body = next(self.channel.consume(
 				self.queue,

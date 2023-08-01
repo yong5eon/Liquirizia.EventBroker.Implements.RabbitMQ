@@ -60,7 +60,7 @@ if __name__ == '__main__':
 		}
 	)
 
-	res = reply.recv()
+	res = reply.receive()
 	print('{} : {} - {}'.format(id, res.body, res.header('X-Reply-Message-Id')))
 
 	id = queue.send(
@@ -74,7 +74,7 @@ if __name__ == '__main__':
 		}
 	)
 
-	res = reply.recv()
+	res = reply.receive()
 	print('{} : {} - {}'.format(id, res.body, res.header('X-Reply-Message-Id')))
 
 	EventBrokerHelper.Publish('Sample', 'topic.sample', event='event.sample', body=str(randint(0, 1000)), format='text/plain', charset='utf-8')
@@ -84,7 +84,7 @@ if __name__ == '__main__':
 		'X-Reply-Broker': 'Sample',
 		'X-Reply-Broker-Queue': 'queue.reply.2'
 	})
-	res = EventBrokerHelper.Recv('Sample', 'queue.reply.2')
+	res = EventBrokerHelper.Receive('Sample', 'queue.reply.2')
 	print('{} : {} - {}'.format(id, res.body, res.header('X-Reply-Message-Id')))
 
 	EventBrokerHelper.CreateQueue('Sample', 'queue.reply.3', persistent=False)
@@ -92,5 +92,5 @@ if __name__ == '__main__':
 		'X-Reply-Broker': 'Sample',
 		'X-Reply-Broker-Queue': 'queue.reply.3'
 	})
-	res = EventBrokerHelper.Recv('Sample', 'queue.reply.3')
+	res = EventBrokerHelper.Receive('Sample', 'queue.reply.3')
 	print('{} : {} - {}'.format(id, res.body, res.header('X-Reply-Message-Id')))
