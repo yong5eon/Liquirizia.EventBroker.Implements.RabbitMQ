@@ -4,6 +4,7 @@ from Liquirizia.EventBroker import Consumer as ConsumerBase, Callback, Error
 from Liquirizia.EventBroker.Errors import *
 
 from .Event import Event
+from .Callback import Callback
 
 from pika import BlockingConnection
 from pika.exceptions import *
@@ -14,9 +15,7 @@ __all__ = (
 
 
 class Consumer(ConsumerBase):
-	"""
-	Consumer of Event Broker for RabbitMQ
-	"""
+	"""Consumer of Event Broker for RabbitMQ"""
 
 	INTERVAL = 1000
 
@@ -48,10 +47,10 @@ class Consumer(ConsumerBase):
 		except AMQPError as e:
 			raise Error(str(e), error=e)
 		return
-
+	
 	def consume(self, queue: str):
 		try:
-			return self.channel.basic_consume(queue, self.event, auto_ack=False, exclusive=False)
+			return self.channel.basic_consume(queue, Callback(self.callback, queue), auto_ack=False, exclusive=False)
 		except (ChannelWrongStateError, ChannelError, ChannelError) as e:
 			raise Error(str(e), error=e)
 		except (ConnectionOpenAborted, ConnectionClosed) as e:
@@ -61,15 +60,6 @@ class Consumer(ConsumerBase):
 		except AMQPError as e:
 			raise Error(str(e), error=e)
 		return
-
-	def event(self, channel, method, properties, body):
-		return self.callback(Event(
-			channel,
-			method.consumer_tag,
-			method.delivery_tag,
-			properties,
-			body,
-		))
 
 	def run(self, interval: int = None):
 		try:
