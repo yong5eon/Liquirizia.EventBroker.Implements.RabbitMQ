@@ -5,6 +5,7 @@ from setuptools import setup, find_packages
 PKG = 'Liquirizia.EventBroker.Implements.RabbitMQ'
 SRC = 'src'
 EXCLUDES = []
+WHO = 'Heo Yongseon'
 
 PKGS = [PKG]
 DIRS = {PKG: SRC}
@@ -17,8 +18,7 @@ setup(
 	description='EventBroker of Liquirizia for RabbitMQ',
 	long_description=open('README.md', encoding='utf-8').read(),
 	long_description_content_type='text/markdown',
-	author='TeamO\'Mine',
-	author_email='labs@teamofmine.com',
+	author=WHO,
 	version=open('VERSION', encoding='utf-8').read(),
 	packages=PKGS,
 	package_dir=DIRS,
