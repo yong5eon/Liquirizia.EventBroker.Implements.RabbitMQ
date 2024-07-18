@@ -5,7 +5,7 @@ from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Configuration,
 	Connection,
 )
-import Liquirizia.Seriailzer.Implements.Text
+import Liquirizia.Serializer.Implements.Text
 
 from random import randint
 
