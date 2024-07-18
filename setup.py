@@ -37,6 +37,5 @@ setup(
 		'Liquirizia.EventBroker@git+https://github.com/yong5eon/Liquirizia.EventBroker.git',
 		'pika==1.3.2'
 	],
-	url='https://github.com/team-of-mine-labs/Liquirizia',
 	python_requires='>=3.8'
 )
