@@ -99,5 +99,13 @@ class Event(EventBase):
 		return self.properties.type
 
 	@property
+	def format(self):
+		return self.properties.content_type
+	
+	@property
+	def charset(self):
+		return self.properties.content_encoding
+
+	@property
 	def body(self):
 		return self.payload
