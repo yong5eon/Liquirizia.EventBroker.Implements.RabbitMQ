@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from Liquirizia.EventBroker import EventHandler
+
 from .Event import Event
 
 __all__ = (
@@ -9,13 +11,13 @@ __all__ = (
 class Callback(object):
 	"""Callback of Consumer"""
 
-	def __init__(self, callback: callable, queue: str):
-		self.callback = callback
+	def __init__(self, handler: EventHandler, queue: str):
+		self.handler = handler
 		self.queue = queue
 		return
 
 	def __call__(self, channel, method, properties, body):
-		return self.callback(Event(
+		return self.handler(Event(
 			channel,
 			self.queue,
 			method.consumer_tag,

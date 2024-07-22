@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import Connection as ConnectionBase, Callback, Error
+from Liquirizia.EventBroker import Connection as ConnectionBase, EventHandler, Error
 from Liquirizia.EventBroker.Errors import *
 
 from .Configuration import Configuration
@@ -59,8 +59,8 @@ class Connection(ConnectionBase):
 	def queue(self, queue: str = None):
 		return Queue(self.connection, queue)
 
-	def consumer(self, callback: Callback, count: int = 1):
-		return Consumer(self.connection, callback, count=count)
+	def consumer(self, handler: EventHandler, count: int = 1):
+		return Consumer(self.connection, handler, count=count)
 
 	def close(self):
 		try:

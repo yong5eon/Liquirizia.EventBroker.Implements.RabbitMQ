@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import Consumer as ConsumerBase, Callback, Error
+from Liquirizia.EventBroker import Consumer as ConsumerBase, EventHandler, Error
 from Liquirizia.EventBroker.Errors import *
 
 from .Event import Event
@@ -19,12 +19,12 @@ class Consumer(ConsumerBase):
 
 	INTERVAL = 1000
 
-	def __init__(self, connection: BlockingConnection, callback: Callback, count: int = 1):
+	def __init__(self, connection: BlockingConnection, handler: EventHandler, count: int = 1):
 		self.connection = connection
 		self.channel = self.connection.channel()
 		self.channel.auto_decode = False
 		self.channel.basic_qos(0, count, False)
-		self.callback = callback
+		self.handler = handler
 		return
 
 	def __del__(self):
@@ -50,7 +50,7 @@ class Consumer(ConsumerBase):
 	
 	def consume(self, queue: str):
 		try:
-			return self.channel.basic_consume(queue, Callback(self.callback, queue), auto_ack=False, exclusive=False)
+			return self.channel.basic_consume(queue, Callback(self.handler, queue), auto_ack=False, exclusive=False)
 		except (ChannelWrongStateError, ChannelError, ChannelError) as e:
 			raise Error(str(e), error=e)
 		except (ConnectionOpenAborted, ConnectionClosed) as e:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import EventBrokerHelper, Callback
+from Liquirizia.EventBroker import EventBrokerHelper, EventHandler
 from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Configuration,
 	Connection,
@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
 	broker = EventBrokerHelper.Get('Sample')
 
-	class SampleCallback(Callback):
+	class SampleEventHandler(EventHandler):
 		def __call__(self, event: Event):
 			try:
 				print(event.body)
@@ -45,6 +45,6 @@ if __name__ == '__main__':
 				# event.reject()  # if you want drop message or move to DLQ or DLE
 			return
 
-	consumer = broker.consumer(callback=SampleCallback())
+	consumer = broker.consumer(handler=SampleEventHandler())
 	consumer.consume('queue.sample')
 	consumer.run()
