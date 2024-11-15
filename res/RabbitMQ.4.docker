@@ -1,0 +1,6 @@
+# Base image for RabbitMQ
+FROM rabbitmq:4-management
+# Expose default ports for RabbitMQ
+# 5672 - RabbitMQ client connections
+# 15672 - RabbitMQ management UI
+EXPOSE 5672 15672
