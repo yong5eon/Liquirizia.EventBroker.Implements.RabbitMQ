@@ -1,195 +1,31 @@
 # Liquirizia.EventBroker.Implements.RabbitMQ
+
 RabbitMQ 를 사용하는 이벤트 브로커
 
-## 이벤트 컨슈머
-```python
-from Liquirizia.EventBroker import EventBrokerHelper, Callback
-from Liquirizia.EventBroker.Implements.RabbitMQ import (
-	Configuration,
-	Connection,
-	Event,
-)
+## Exchange 유형에 따른 라우팅 방식
 
-if __name__ == '__main__':
+- Fanout : 단순히 메시지를 모든 큐로 브로드캐스트.
+- Topic  : 패턴 매칭을 통해 메시지를 세분화하여 라우팅.
+- Header : 라우팅 키를 무시하고 헤더 조건으로 메시지 라우팅.
+- Direct : 라우팅 키와 정확히 일치하는 큐로 메시지를 전송.
 
-	EventBrokerHelper.Set(
-		'Sample',
-		Connection,
-		Configuration(
-			host='127.0.0.1',
-			port=5672,
-			username='guest',
-			password='guest',
-		)
-	)
+| **특징**                | **Fanout**                                 | **Topic**                                    | **Header**                                   | **Direct**                                   |
+|--------------------------|---------------------------------------------|----------------------------------------------|----------------------------------------------|----------------------------------------------|
+| **라우팅 기준**          | 없음 (모든 바인딩된 큐로 메시지 전송)       | Routing key와 Binding pattern 매칭           | 메시지 헤더 값과 Binding 헤더 조건 일치 여부 | Routing key와 Binding key의 **정확한 일치**  |
+| **Routing Key 사용 여부**| 사용하지 않음                              | 사용                                          | 사용하지 않음 (헤더에 의존)                  | 사용                                          |
+| **Binding 조건**         | 큐와 단순 연결                             | Wildcard (`*`, `#`) 사용 가능                | Key-Value 형식의 헤더 조건                   | 정확히 매칭되는 키 사용                      |
+| **와일드카드 지원**      | 지원하지 않음                              | `*`(한 단어), `#`(0개 이상의 단어) 지원      | 지원하지 않음                                | 지원하지 않음                                |
+| **메시지 전달 대상**     | 모든 바인딩된 큐                           | Binding pattern과 매칭된 큐만                | 헤더 조건을 만족하는 큐만                    | Binding key와 정확히 일치하는 큐만           |
+| **사용 사례**            | - 브로드캐스트<br>- 로그 전달              | - 패턴 기반 메시지 라우팅<br>- 뉴스 필터링    | - 복잡한 조건 기반 필터링<br>- 메타데이터 기반 | - 단순하고 명확한 라우팅<br>- 작업 분배       |
+| **복잡도**               | 가장 단순                                  | 중간 (패턴 매칭 로직 추가)                   | 복잡 (헤더 조건 설정 필요)                   | 단순                                          |
 
-	broker = EventBrokerHelper.Get('Sample')
+## 도커 빌드 및 실행
 
-	# 토픽 선언
-	topic = broker.topic()
-	topic.declare('topic.sample', alter='topic.error.route', persistent=False)
-
-	# 에러 처리를 위한 토픽 선언
-	e = broker.topic()
-	e.declare('topic.error', persistent=False)
-
-	# 에러 처리를 큐 선언
-	q = broker.queue()
-	q.declare('queue.error', persistent=False)
-	q.bind('topic.error', '*')
-	q.bind('topic.error.route', '*')
-
-	# 큐 선언
-	queue = broker.queue()
-	queue.declare('queue.sample', errorQueue='queue.error', persistent=False)
-	queue.bind('topic.sample', 'event.sample')
-
-	# 이벤트 처리를 위한 콜백 인터페이스 구현
-	class SampleCallback(Callback):
-		def __call__(self, event: Event):
-			try:
-				print(event.body)
-				event.ack()
-			except RuntimeError:
-				event.nack()  # if you want requeue message
-				# event.reject()  # if you want drop message or move to DLQ or DLE
-			return
-
-	# 컨슈머 정의 및 동작
-	consumer = broker.consumer(callback=SampleCallback())
-	consumer.consume('queue.sample')
-	consumer.run()
+```shell
+> docker image build --file=res/RabbitMQ.4.docker --tag=rabbit-mq:4 .
+> docker container run --name=rabbit-mq --detach --publish=5672:5672 --publish=15672:15672 rabbit-mq:4
 ```
 
-## 이벤트 퍼블리셔
-```python
-from Liquirizia.EventBroker import EventBrokerHelper
-from Liquirizia.EventBroker.Implements.RabbitMQ import (
-	Configuration,
-	Connection,
-)
+## 샘플
 
-from random import randint
-
-if __name__ == '__main__':
-
-	# 이벤트 프로커 설정
-	EventBrokerHelper.Set(
-		'Sample',
-		Connection,
-		Configuration(
-			host='127.0.0.1',
-			port=5672,
-			username='guest',
-			password='guest',
-		)
-	)
-
-	# 토픽에 메세지 퍼블리싱
-	EventBrokerHelper.Publish('Sample', 'topic.sample', event='event.sample', body=str(randint(0, 1000)), format='text/plain', charset='utf-8')
-	# 큐에 메세지 퍼블리싱
-	EventBrokerHelper.Send('Sample', 'queue.sample', event='event.sample', body=str(randint(0, 1000)), format='text/plain', charset='utf-8')
-```
-
-## RPC(Remote Process Call)
-
-### 원격 프로세스 요청
-```python
-from Liquirizia.EventBroker import EventBrokerHelper
-from Liquirizia.EventBroker.Implements.RabbitMQ import (
-	Configuration,
-	Connection,
-)
-
-from random import randint
-
-if __name__ == '__main__':
-
-	# 이벤트 프로커 설정
-	EventBrokerHelper.Set(
-		'Sample',
-		Connection,
-		Configuration(
-			host='127.0.0.1',
-			port=5672,
-			username='guest',
-			password='guest',
-		)
-	)
-
-	# 응답 큐 생성
-	EventBrokerHelper.CreateQueue('Sample', 'queue.reply')	
-	# 큐에 메세지 퍼블리싱
-	EventBrokerHelper.Send(
-		'Sample', 
-		'queue.sample', 
-		event='event.sample', 
-		body=str(randint(0, 1000)), 
-		format='text/plain', 
-		charset='utf-8',
-		headers={
-			'x-broker': 'Sample',
-			'x-broker-reply': 'queue.reply'
-		}
-	)
-	# 응답 요청
-	response = EventBrokerHelper.Recv('Sample', 'queue.reply')
-	# TODO : do something with response
-```
-
-### 원격 프로세스 처리
-```python
-from Liquirizia.EventBroker import EventBrokerHelper, Callback
-from Liquirizia.EventBroker.Implements.RabbitMQ import (
-	Configuration,
-	Connection,
-	Event,
-)
-
-if __name__ == '__main__':
-
-	EventBrokerHelper.Set(
-		'Sample',
-		Connection,
-		Configuration(
-			host='127.0.0.1',
-			port=5672,
-			username='guest',
-			password='guest',
-		)
-	)
-
-	broker = EventBrokerHelper.Get('Sample')
-
-	# 큐 선언
-	queue = broker.queue()
-	queue.declare('queue.sample', persistent=False)
-	queue.bind('topic.sample', 'event.sample')
-
-	# 이벤트 처리를 위한 콜백 인터페이스 구현
-	class SampleCallback(Callback):
-		def __call__(self, event: Event):
-			try:
-				# TODO : do something
-				EventBrokerHelper.Send(
-					event.header('x-broker'),
-					event.header('x-broker-reply'),
-					event=event.type,
-					body=event.body,
-					format='plain/text',
-					charset='utf-8',
-					headers={
-						'x-message-id': event.id
-					}
-				)
-				event.ack()
-			except RuntimeError:
-				event.nack()  # if you want requeue message
-				# event.reject()  # if you want drop message or move to DLQ or DLE
-			return
-
-	# 컨슈머 정의 및 동작
-	consumer = broker.consumer(callback=SampleCallback())
-	consumer.consume('queue.sample')
-	consumer.run()
-```
+- [Pub/Sub 샘플](sample/Sample.py)
