@@ -23,7 +23,7 @@ jobs:
       - name: Build RabbitMQ docker
         run: docker image build --file=res/RabbitMQ.4.docker.yaml --tag=rabbitmq:4 .
       - name: Run RabbitMQ 4 docker
-        run: docker container run --name=rabbitmq --detach --publish=5672:5672 --publish=15672:15672 rabbitmq:4
+        run: docker container run --name=rabbitmq --rm --detach --publish=5672:5672 --publish=15672:15672 rabbitmq:4
       - name: Check RabbitMQ docker
         run: docker logs rabbitmq
       - name: Test
