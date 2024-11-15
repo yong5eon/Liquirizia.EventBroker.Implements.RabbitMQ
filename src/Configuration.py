@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import Configuration as ConfigurationBase
+from Liquirizia.EventBroker import Configuration as BaseConfiguration
 
 from pika import SSLOptions
 from ssl import create_default_context
@@ -10,7 +10,7 @@ __all__ = (
 )
 
 
-class Configuration(ConfigurationBase):
+class Configuration(BaseConfiguration):
 	"""
 	Configuration of Event Broker for RabbitMQ
 	"""

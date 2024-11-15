@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import Queue as BaseQueue, Exchange
+from Liquirizia.EventBroker import Exchange as BaseExchange
 
 from Liquirizia.Serializer import SerializerHelper
 
@@ -9,20 +9,27 @@ from .Bind import Parameters
 from pika import BlockingConnection, BasicProperties
 
 from time import time
+from enum import Enum
 from uuid import uuid4
 
 from typing import Union, Dict
 
 __all__ = (
-	'Queue'
+	'Exchange',
+	'ExchangeType',
 )
 
+class ExchangeType(str, Enum):
+	Direct = 'direct'
+	FanOut = 'fanout'
+	Topic  = 'topic'
+	Header = 'headers'
+	def __str__(self): return str(self.value)
 
-class Queue(BaseQueue): pass
-class Queue(BaseQueue):
-	"""
-	Queue of Event Broker for RabbitMQ
-	"""
+
+class Exchange(BaseExchange): pass
+class Exchange(BaseExchange):
+	"""Exchange of Event Broker for RabbitMQ"""
 	def __init__(
 		self,
 		connection: BlockingConnection,
@@ -31,7 +38,7 @@ class Queue(BaseQueue):
 		self.connection = connection
 		self.channel = self.connection.channel()
 		self.channel.auto_decode = False
-		self.queue = name
+		self.exchange = name
 		return
 
 	def __del__(self):
@@ -39,61 +46,56 @@ class Queue(BaseQueue):
 			self.channel.close()
 		return
 	
-	def __str__(self): return self.queue
+	def __str__(self): return self.exchange
 
 	def create(
 		self,
 		name: str,
-		expires: int = None,
-		ttl: int = None,
-		limit: int = None,
-		size: int = None,
+		type: ExchangeType,
 		durable: bool = True,
 		autodelete: bool = False,
-		errorQueue: Union[str, Queue] = None,
-		errorExchange: Union[str, Exchange] = None,
+		alter: Union[str, Exchange] = None,
 	):
 		args = {}
-		if errorQueue:
-			args['x-dead-letter-exchange'] = ''
-			args['x-dead-letter-routing-key'] = str(errorQueue)
-		if errorExchange:
-			args['x-dead-letter-exchange'] = str(errorExchange)
-		if expires:
-			args['x-expires'] = expires
-		if ttl:
-			args['x-message-ttl'] = ttl
-		if limit:
-			args['x-max-length'] = limit
-		if size:
-			args['x-max-length-bytes'] = size
-		self.channel.queue_declare(
+		if alter:
+			args['alternate-exchange'] = str(alter)
+		self.channel.exchange_declare(
 			name,
+			str(type),
 			durable=durable,
 			auto_delete=autodelete,
 			arguments=args
 		)
-		self.queue = name
+		self.exchange = name
 		return
 
 	def remove(self):
-		if self.queue:
-			self.channel.queue_delete(self.queue)
+		if self.exchange:
+			self.channel.exchange_delete(self.exchange)
 		return
 
-
-	def bind(self, exchange: Union[str, Exchange], event: str = None, parameters: Parameters = None):
-		self.channel.queue_bind(
-			self.queue,
+	def bind(
+		self,
+		exchange: Union[str, Exchange],
+		event: str = None,
+		parameters: Parameters= None,
+	):
+		self.channel.exchange_bind(
+			self.exchange,
 			str(exchange),
 			routing_key=event if event else '',
 			arguments=parameters
 		)
 		return
 
-	def unbind(self, exchange: Union[str, Exchange], event: str = None, parameters: Parameters = None):
-		self.channel.queue_unbind(
-			self.queue,
+	def unbind(
+		self,
+		exchange: Union[str, Exchange],
+		event: str = None,
+		parameters: Parameters = None,
+	):
+		self.channel.exchange_unbind(
+			self.exchange,
 			str(exchange),
 			routing_key=event if event else '',
 			arguments=parameters,
@@ -126,8 +128,8 @@ class Queue(BaseQueue):
 		)
 		body = SerializerHelper.Encode(body, format, charset) if body else None
 		self.channel.basic_publish(
-			exchange='',
-			routing_key=self.queue,
+			exchange=self.exchange,
+			routing_key=event if event else '',
 			properties=properties,
 			body=body
 		)
