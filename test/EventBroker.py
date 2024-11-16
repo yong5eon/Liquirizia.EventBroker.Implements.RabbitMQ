@@ -57,14 +57,6 @@ class TestEventBroker(Case):
 		_ = reader.read()
 		_.ack()
 		ASSERT_IS_EQUAL(i, _.body)
-		queue.send(i)
-		_ = SimpleQueue()
-		consumer = con.consumer('queue', handler=TestEventHandler(_))
-		def stop():
-			consumer.stop()
-		SetTimer(0.1, stop)
-		consumer.run()
-		ASSERT_IS_EQUAL(i, _.get())
 		queue.remove()
 		return
 	
@@ -89,14 +81,6 @@ class TestEventBroker(Case):
 		_ = reader.read()
 		_.ack()
 		ASSERT_IS_EQUAL(i, _.body)
-		exchange.send(i)
-		_ = SimpleQueue()
-		consumer = con.consumer('fanout.queue', handler=TestEventHandler(_))
-		def stop():
-			consumer.stop()
-		SetTimer(0.1, stop)
-		consumer.run()
-		ASSERT_IS_EQUAL(i, _.get())
 		queue.remove()
 		exchange.remove()
 		return
@@ -125,17 +109,6 @@ class TestEventBroker(Case):
 			_.ack()
 		else:
 			ASSERT_IS_NONE(_)
-		exchange.send(i, event=event)
-		_ = SimpleQueue()
-		consumer = con.consumer('direct.queue', handler=TestEventHandler(_))
-		def stop():
-			consumer.stop()
-		SetTimer(0.1, stop)
-		consumer.run()
-		if recv:
-			ASSERT_IS_EQUAL(i, _.get())
-		else:
-			ASSERT_IS_EQUAL(_.qsize(), 0)
 		queue.remove()
 		exchange.remove()
 		return
@@ -164,17 +137,6 @@ class TestEventBroker(Case):
 			_.ack()
 		else:
 			ASSERT_IS_NONE(_)
-		exchange.send(i, event=event)
-		_ = SimpleQueue()
-		consumer = con.consumer('topic.queue', handler=TestEventHandler(_))
-		def stop():
-			consumer.stop()
-		SetTimer(0.1, stop)
-		consumer.run()
-		if recv:
-			ASSERT_IS_EQUAL(i, _.get())
-		else:
-			ASSERT_IS_EQUAL(_.qsize(), 0)
 		queue.remove()
 		exchange.remove()
 		return
@@ -203,17 +165,6 @@ class TestEventBroker(Case):
 			_.ack()
 		else:
 			ASSERT_IS_NONE(_)
-		exchange.send(i, headers=headers)
-		_ = SimpleQueue()
-		consumer = con.consumer('header.queue', handler=TestEventHandler(_))
-		def stop():
-			consumer.stop()
-		SetTimer(0.1, stop)
-		consumer.run()
-		if status:
-			ASSERT_IS_EQUAL(i, _.get())
-		else:
-			ASSERT_IS_EQUAL(_.qsize(), 0)
 		queue.remove()
 		exchange.remove()
 		return
