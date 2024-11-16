@@ -25,7 +25,7 @@ jobs:
       - name: Run RabbitMQ
         run: docker container run --name=rabbitmq -it --rm --detach --publish=5672:5672 --publish=15672:15672 rabbitmq:4
       - name: Check Ports are opened
-				uses: nrukavkov/open-ports-check-action@v1
+        uses: nrukavkov/open-ports-check-action@v1
         with:
           port: 5672, 15672
           pause: 5000
