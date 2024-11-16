@@ -52,7 +52,14 @@ class Consumer(BaseConsumer):
 			self.channel.stop_consuming()
 			return
 		self.channel.basic_consume(self.queue, callback, auto_ack=False, exclusive=False)
-		if timeout: SetTimer(timeout, self.stop)
+		if timeout:
+			def stop():
+				try:
+					self.channel.stop_consuming()
+				except Exception as e:
+					pass
+				return
+			SetTimer(timeout, stop)
 		self.channel.start_consuming()
 		return self.event
 

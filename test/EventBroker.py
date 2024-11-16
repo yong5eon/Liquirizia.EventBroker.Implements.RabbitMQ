@@ -86,15 +86,15 @@ class TestEventBroker(Case):
 		return
 
 	@Parameterized(
-		{'i': True, 'event': 'false', 'recv': False},
-		{'i': 1, 'event': 'true', 'recv': True},
-		{'i': 1.0, 'event': 'false', 'recv': False},
-		{'i': 'abc', 'event': 'true', 'recv': True},
-		{'i': [1,2,3], 'event': 'false', 'recv': False},
-		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}, 'event': 'true', 'recv': True},
+		{'i': True, 'event': 'false', 'status': False},
+		{'i': 1, 'event': 'true', 'status': True},
+		{'i': 1.0, 'event': 'false', 'status': False},
+		{'i': 'abc', 'event': 'true', 'status': True},
+		{'i': [1,2,3], 'event': 'false', 'status': False},
+		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}, 'event': 'true', 'status': True},
 	)
 	@Order(3)
-	def testDirect(self, i, event, recv):
+	def testDirect(self, i, event, status):
 		con: Connection = Helper.Get('Sample')
 		exchange = con.exchange()
 		exchange.create('direct', ExchangeType.Direct)
@@ -104,7 +104,7 @@ class TestEventBroker(Case):
 		exchange.send(i, event=event)
 		reader = con.consumer('direct.queue')	
 		_ = reader.read(timeout=0.1)
-		if recv and _:
+		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
 		else:
@@ -114,15 +114,15 @@ class TestEventBroker(Case):
 		return
 
 	@Parameterized(
-		{'i': True, 'event': 'a.false', 'recv': False},
-		{'i': 1, 'event': 'b.true', 'recv': True},
-		{'i': 1.0, 'event': 'c.false', 'recv': False},
-		{'i': 'abc', 'event': 'd.true', 'recv': True},
-		{'i': [1,2,3], 'event': 'e.false', 'recv': False},
-		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}, 'event': 'f.true', 'recv': True},
+		{'i': True, 'event': 'a.false', 'status': False},
+		{'i': 1, 'event': 'b.true', 'status': True},
+		{'i': 1.0, 'event': 'c.false', 'status': False},
+		{'i': 'abc', 'event': 'd.true', 'status': True},
+		{'i': [1,2,3], 'event': 'e.false', 'status': False},
+		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}, 'event': 'f.true', 'status': True},
 	)
 	@Order(4)
-	def testTopic(self, i, event, recv):
+	def testTopic(self, i, event, status):
 		con: Connection = Helper.Get('Sample')
 		exchange = con.exchange()
 		exchange.create('topic', ExchangeType.Topic)
@@ -132,7 +132,7 @@ class TestEventBroker(Case):
 		exchange.send(i, event=event)
 		reader = con.consumer('topic.queue')	
 		_ = reader.read(timeout=0.1)
-		if recv and _:
+		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
 		else:
@@ -160,7 +160,7 @@ class TestEventBroker(Case):
 		exchange.send(i, headers=headers)
 		reader = con.consumer('header.queue')	
 		_ = reader.read(timeout=0.1)
-		if status and _:
+		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
 		else:
