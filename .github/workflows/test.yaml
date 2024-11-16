@@ -14,17 +14,20 @@ jobs:
           python-version: ${{matrix.python-version}} 
       - name: Show Python Verison
         run: python -c "import sys; print(sys.version)"
-      - name: Install pip 
+      - name: Install Package Installer for Python
         run: python -m pip install --upgrade pip
-      - name: Install requirements
+      - name: Install Requirements
         run: pip install --upgrade setuptools wheel ruff
-      - name: Install
+      - name: Build RabbitMQ
+        run: docker image build --file=res/RabbitMQ.4.docker.yaml --tag=rabbitmq:4 .
+      - name: Run RabbitMQ
+        run: docker container run --name=rabbitmq -it --rm --detach --publish=5672:5672 --publish=15672:15672 rabbitmq:4
+      - uses: nrukavkov/open-ports-check-action@v1
+        with:
+          port: 5672, 15672
+          pause: 5000
+          needFail: 'true'
+      - name: Install Package
         run: pip install --upgrade .
-      - name: Build RabbitMQ docker
-        run: sudo docker pull rabbitmq
-      - name: Run RabbitMQ 4 docker
-        run: sudo docker run --detach --rm --name=rabbitmq --publish=5672:5672 rabbitmq:3
-      - name: Check RabbitMQ docker
-        run: docker logs rabbitmq
       - name: Test
         run: python -m Liquirizia.Test test
