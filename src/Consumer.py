@@ -28,8 +28,8 @@ class Consumer(BaseConsumer):
 		self.connection = connection
 		self.queue = queue
 		self.channel = self.connection.channel()
-		self.channel.auto_decode = False
 		self.channel.basic_qos(0, qos, False)
+		self.channel.auto_decode = False
 		self.handler = handler
 		return
 
@@ -38,7 +38,7 @@ class Consumer(BaseConsumer):
 			self.channel.close()
 		return
 
-	def read(self, timeout: float = None) -> Optional[Event]:
+	def read(self, timeout: int = None) -> Optional[Event]:
 		self.event = None
 		def callback(channel, method, properties, body):
 			self.event = Event(
@@ -51,16 +51,16 @@ class Consumer(BaseConsumer):
 			)
 			self.channel.stop_consuming()
 			return
-		self.channel.basic_consume(self.queue, callback, auto_ack=False, exclusive=False)
+		timer = None
 		if timeout:
 			def stop():
-				try:
-					self.channel.stop_consuming()
-				except Exception as e:
-					pass
+				self.channel.stop_consuming()
 				return
-			SetTimer(timeout, stop)
+			timer = SetTimer(timeout, stop)
+		self.channel.basic_consume(self.queue, callback, auto_ack=False, exclusive=False)
 		self.channel.start_consuming()
+		if timeout:
+			timer.stop()
 		return self.event
 
 	def __callback__(self, channel, method, properties, body):
