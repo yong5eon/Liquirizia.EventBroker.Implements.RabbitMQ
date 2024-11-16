@@ -35,6 +35,8 @@ class TestEventBroker(Case):
 				port=5672,
 				username='guest',
 				password='guest',
+				timeout=5000,
+				heartbeat=1000,
 			)
 		)
 		return super().setUpClass()
@@ -103,7 +105,7 @@ class TestEventBroker(Case):
 		queue.bind(exchange, event='true')
 		exchange.send(i, event=event)
 		reader = con.consumer('direct.queue')	
-		_ = reader.read(timeout=0.1)
+		_ = reader.read(timeout=500)
 		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
@@ -131,7 +133,7 @@ class TestEventBroker(Case):
 		queue.bind(exchange, event='*.true')
 		exchange.send(i, event=event)
 		reader = con.consumer('topic.queue')	
-		_ = reader.read(timeout=0.1)
+		_ = reader.read(timeout=500)
 		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
@@ -159,7 +161,7 @@ class TestEventBroker(Case):
 		queue.bind(exchange, parameters=All(event='true'))
 		exchange.send(i, headers=headers)
 		reader = con.consumer('header.queue')	
-		_ = reader.read(timeout=0.1)
+		_ = reader.read(timeout=500)
 		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
