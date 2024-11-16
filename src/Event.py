@@ -1,18 +1,15 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import Event as EventBase, Error
-from Liquirizia.EventBroker.Errors import *
+from Liquirizia.EventBroker import Event as BaseEvent
 
 from Liquirizia.Serializer import SerializerHelper
-
-from pika.exceptions import *
 
 __all__ = (
 	'Event'
 )
 
 
-class Event(EventBase):
+class Event(BaseEvent):
 	"""
 	Event of Event Broker for RabbitMQ
 	"""
@@ -32,50 +29,23 @@ class Event(EventBase):
 		return
 
 	def __repr__(self):
-		return '{} - {} - {}, {}'.format(
+		return 'Event(id={}, body={}, type={}, headers={})'.format(
+			self.properties.message_id,
+			self.payload,
 			self.properties.type,
-			self.length,
-			self.properties.content_type,
-			self.properties.content_encoding
+			self.props,
 		)
 
 	def ack(self):
-		try:
-			self.channel.basic_ack(self.transaction)
-		except (ChannelWrongStateError, ChannelError, ChannelError) as e:
-			raise Error(str(e), error=e)
-		except (ConnectionOpenAborted, ConnectionClosed) as e:
-			raise ConnectionClosedError(str(e), error=e)
-		except ConnectionWrongStateError as e:
-			raise ConnectionError(str(e), error=e)
-		except AMQPError as e:
-			raise Error(str(e), error=e)
+		self.channel.basic_ack(self.transaction)
 		return
 
 	def nack(self):
-		try:
-			self.channel.basic_nack(self.transaction, requeue=True)
-		except (ChannelWrongStateError, ChannelError, ChannelError) as e:
-			raise Error(str(e), error=e)
-		except (ConnectionOpenAborted, ConnectionClosed) as e:
-			raise ConnectionClosedError(str(e), error=e)
-		except ConnectionWrongStateError as e:
-			raise ConnectionError(str(e), error=e)
-		except AMQPError as e:
-			raise Error(str(e), error=e)
+		self.channel.basic_nack(self.transaction, requeue=True)
 		return
 
 	def reject(self):
-		try:
-			self.channel.basic_nack(self.transaction, requeue=False)
-		except (ChannelWrongStateError, ChannelError, ChannelError) as e:
-			raise Error(str(e), error=e)
-		except (ConnectionOpenAborted, ConnectionClosed) as e:
-			raise ConnectionClosedError(str(e), error=e)
-		except ConnectionWrongStateError as e:
-			raise ConnectionError(str(e), error=e)
-		except AMQPError as e:
-			raise Error(str(e), error=e)
+		self.channel.basic_nack(self.transaction, requeue=False)
 		return
 
 	def headers(self):

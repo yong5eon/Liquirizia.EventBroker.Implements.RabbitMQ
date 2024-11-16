@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import Connection as ConnectionBase, EventHandler, Error
-from Liquirizia.EventBroker.Errors import *
+from Liquirizia.EventBroker import (
+	Connection as BaseConnection, 
+	GetExchange,
+	GetQueue,
+	GetConsumer,
+	EventHandler,
+)
 
 from .Configuration import Configuration
-from .Topic import Topic
+
+from .Exchange import Exchange
 from .Queue import Queue
 from .Consumer import Consumer
 
@@ -16,7 +22,7 @@ __all__ = (
 )
 
 
-class Connection(ConnectionBase):
+class Connection(BaseConnection, GetExchange, GetQueue, GetConsumer):
 	"""
 	Connection of Event Broker for RabbitMQ
 	"""
@@ -39,34 +45,22 @@ class Connection(ConnectionBase):
 		return
 
 	def connect(self):
-		try:
-			if self.connection and self.connection.is_open:
-				return
-			self.connection = BlockingConnection(parameters=self.parameters)
-		except (ConnectionOpenAborted, ConnectionClosed) as e:
-			raise ConnectionRefusedError(str(e), error=e)
-		except ConnectionBlockedTimeout as e:
-			raise ConnectionTimeoutError(str(e), error=e)
-		except ConnectionWrongStateError as e:
-			raise ConnectionError(str(e), error=e)
-		except AMQPError as e:
-			raise Error(str(e), error=e)
+		if self.connection and self.connection.is_open:
+			return
+		self.connection = BlockingConnection(parameters=self.parameters)
 		return
 
-	def topic(self, topic: str = None):
-		return Topic(self.connection, topic)
+	def exchange(self, exchange: str = None):
+		return Exchange(self.connection, exchange)
 
 	def queue(self, queue: str = None):
 		return Queue(self.connection, queue)
 
-	def consumer(self, handler: EventHandler, count: int = 1):
-		return Consumer(self.connection, handler, count=count)
+	def consumer(self, queue: str, handler: EventHandler = None, qos: int = 1):
+		return Consumer(self.connection, queue, handler, qos=qos)
 
 	def close(self):
-		try:
-			if self.connection and self.connection.is_open:
-				self.connection.close()
-				self.connection = None
-		except AMQPError:
+		if self.connection and self.connection.is_open:
+			self.connection.close()
 			self.connection = None
 		return

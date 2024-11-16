@@ -2,15 +2,15 @@
 
 from .Configuration import Configuration
 from .Connection import Connection
-from .Topic import Topic
+from .Exchange import Exchange, ExchangeType
 from .Queue import Queue
-from .Consumer import Consumer
 from .Event import Event
 
 __all__ = (
 	'Configuration',
 	'Connection',
-	'Topic',
+	'ExchangeType',
+	'Exchange',
 	'Queue',
 	'Consumer',
 	'Event',

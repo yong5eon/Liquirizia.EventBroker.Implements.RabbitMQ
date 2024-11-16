@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import Configuration as ConfigurationBase
+from Liquirizia.EventBroker import Configuration as BaseConfiguration
 
 from pika import SSLOptions
 from ssl import create_default_context
@@ -10,11 +10,21 @@ __all__ = (
 )
 
 
-class Configuration(ConfigurationBase):
+class Configuration(BaseConfiguration):
 	"""
 	Configuration of Event Broker for RabbitMQ
 	"""
-	def __init__(self, host, port, username=None, password=None, ssl=False, vhost='/', timeout=None, heartbeat=None):
+	def __init__(
+		self,
+		host: str,
+		port: int,
+		username: str = None,
+		password: str = None,
+		ssl: bool = False,
+		vhost: str = '/',
+		timeout: int = None,
+		heartbeat: int = None,
+	):
 		self.host = host
 		self.port = port
 		self.username = username
