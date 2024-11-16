@@ -14,7 +14,17 @@ class Configuration(BaseConfiguration):
 	"""
 	Configuration of Event Broker for RabbitMQ
 	"""
-	def __init__(self, host, port, username=None, password=None, ssl=False, vhost='/', timeout=None, heartbeat=None):
+	def __init__(
+		self,
+		host: str,
+		port: int,
+		username: str = None,
+		password: str = None,
+		ssl: bool = False,
+		vhost: str = '/',
+		timeout: int = None,
+		heartbeat: int = None,
+	):
 		self.host = host
 		self.port = port
 		self.username = username
