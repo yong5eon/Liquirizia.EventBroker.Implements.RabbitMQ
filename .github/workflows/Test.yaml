@@ -1,5 +1,14 @@
-name: Test Liquirizia.EventBroker.Implements.RabbitMQ
-on: push
+name: Test
+on:
+  push:
+    branches:
+      - 'feature/*'
+      - 'fix/*'
+      - 'bug/*'
+  pull_request:
+    types:
+      - opened
+      - synchronize
 jobs:
   build:
     runs-on: ${{matrix.os}}
