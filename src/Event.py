@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import Event as BaseEvent
-
+from Liquirizia.EventBroker import EventHandler as BaseEventHandler
 from Liquirizia.Serializer import SerializerHelper
 
+from abc import abstractmethod
+
 __all__ = (
-	'Event'
+	'Event',
+	'EventHandler',
 )
 
 
-class Event(BaseEvent):
-	"""
-	Event of Event Broker for RabbitMQ
-	"""
+class Event(object):
+	"""Event of Event Broker for RabbitMQ"""
 	def __init__(self, channel, queue, consumer, transaction, properties, body):
 		self.channel = channel
 		self.queue = queue
@@ -79,3 +79,11 @@ class Event(BaseEvent):
 	@property
 	def body(self):
 		return self.payload
+
+
+class EventHandler(BaseEventHandler):
+	"""Event Handler Interface of Event Broker for RabbitMQ"""
+	@abstractmethod
+	def __call__(self, event: Event):
+		raise NotImplementedError('{} must be implemented __call__'.format(self.__class__.__name__))
+

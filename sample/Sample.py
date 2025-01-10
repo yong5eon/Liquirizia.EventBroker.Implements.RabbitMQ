@@ -1,11 +1,12 @@
+# Sample for Liquirizia.EventBroker.Implements.RabbitMQ
 
-
-from Liquirizia.EventBroker import Helper, EventHandler
+from Liquirizia.EventBroker import Helper
 from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Configuration,
 	Connection,
 	ExchangeType,
 	Event,
+	EventHandler,
 )
 from Liquirizia.System.Util import SetTimer
 
@@ -23,26 +24,25 @@ if __name__ == '__main__':
 	)
 
 	con: Connection = Helper.Get('Sample')
+	con.createExchange('topic', ExchangeType.Topic)
+	con.createQueue('queue')
+	con.bindExchangeToQueue('topic', 'queue')
 
-	exchange = con.exchange()
-	exchange.create('topic', ExchangeType.Topic)
-	queue = con.queue()
-	queue.create('queue')
-	queue.bind(exchange)
-
+	exchange = con.exchange('topic')
 	exchange.send({'a': True, 'b': 1, 'c':1.0, 'd': 'abc'})
-	queue.send({'a': True, 'b': 1, 'c':1.0, 'd': 'abc'})
+	queue = con.queue('queue')
+	queue.send({'a': False, 'b': 2, 'c':2.0, 'd': 'def'})
 
-	reader = con.consumer('queue')
-	e = reader.read()
+	reader = con.queue('queue')
+	e = reader.get()
 	print(e)
 	e.ack()
-	e = reader.read()
+	e = reader.get()
 	print(e)
 	e.ack()
 
 	exchange.send({'a': True, 'b': 1, 'c':1.0, 'd': 'abc'})
-	queue.send({'a': True, 'b': 1, 'c':1.0, 'd': 'abc'})
+	queue.send({'a': False, 'b': 2, 'c':2.0, 'd': 'def'})
 
 	class SampleEventHandler(EventHandler):
 		def __call__(self, event: Event):
@@ -55,7 +55,6 @@ if __name__ == '__main__':
 			return
 		
 	consumer = con.consumer(
-		queue='queue',
 		handler=SampleEventHandler(),
 		qos=1
 	)
@@ -64,9 +63,11 @@ if __name__ == '__main__':
 		consumer.stop()
 		return
 	
-	SetTimer(0.1, stop)
+	SetTimer(100, stop)
 
+	consumer.subs('queue')
 	consumer.run()
 
-	queue.remove()
-	exchange.remove()
+	con.deleteQueue('queue')
+	con.deleteExchange('topic')
+
