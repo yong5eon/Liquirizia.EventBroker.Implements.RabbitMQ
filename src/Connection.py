@@ -24,7 +24,7 @@ from enum import Enum
 from typing import Any, Iterator, Union
 
 __all__ = (
-	'Connection'
+	'Connection',
 	'ExchangeType',
 	'Parameters',
 	'All',
