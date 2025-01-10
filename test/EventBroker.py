@@ -2,26 +2,13 @@
 
 from Liquirizia.Test import *
 
-from Liquirizia.EventBroker import Helper, EventHandler
+from Liquirizia.EventBroker import Helper
 from Liquirizia.EventBroker.Implements.RabbitMQ import *
-from Liquirizia.EventBroker.Implements.RabbitMQ.Bind import *
 
 from Liquirizia.System.Util import SetTimer
 
 from queue import SimpleQueue
 
-class TestEventHandler(EventHandler):
-	def __init__(self, v: SimpleQueue):
-		self.v = v
-		return
-
-	def __call__(self, event: Event):
-		try:
-			self.v.put(event.body)
-			event.ack()
-		except RuntimeError:
-			event.nack()  # if you want requeue message
-		return
 
 
 class TestEventBroker(Case):
@@ -52,14 +39,14 @@ class TestEventBroker(Case):
 	@Order(1)
 	def testQueue(self, i):
 		con: Connection = Helper.Get('Sample')
-		queue = con.queue()
-		queue.create('queue')
+		con.createQueue('queue')
+		queue = con.queue('queue')
 		queue.send(i)
-		reader = con.consumer('queue')
-		_ = reader.read()
+		reader = con.queue('queue')
+		_ = reader.get()
 		_.ack()
 		ASSERT_IS_EQUAL(i, _.body)
-		queue.remove()
+		con.deleteQueue('queue')
 		return
 	
 	@Parameterized(
@@ -73,18 +60,17 @@ class TestEventBroker(Case):
 	@Order(2)
 	def testFanout(self, i):
 		con: Connection = Helper.Get('Sample')
-		exchange = con.exchange()
-		exchange.create('fanout', ExchangeType.Direct)
-		queue = con.queue()
-		queue.create('fanout.queue')
-		queue.bind(exchange)
+		con.createExchange('fanout', ExchangeType.Direct)
+		con.createQueue('fanout.queue')
+		con.bindExchangeToQueue('fanout', 'fanout.queue')
+		exchange = con.exchange('fanout')
+		queue = con.queue('fanout.queue')	
 		exchange.send(i)
-		reader = con.consumer('fanout.queue')	
-		_ = reader.read()
+		_ = queue.get()
 		_.ack()
 		ASSERT_IS_EQUAL(i, _.body)
-		queue.remove()
-		exchange.remove()
+		con.deleteQueue('fanout.queue')
+		con.deleteExchange('fanout')
 		return
 
 	@Parameterized(
@@ -98,21 +84,20 @@ class TestEventBroker(Case):
 	@Order(3)
 	def testDirect(self, i, event, status):
 		con: Connection = Helper.Get('Sample')
-		exchange = con.exchange()
-		exchange.create('direct', ExchangeType.Direct)
-		queue = con.queue()
-		queue.create('direct.queue')
-		queue.bind(exchange, event='true')
+		con.createExchange('direct', ExchangeType.Direct)
+		con.createQueue('direct.queue')
+		con.bindExchangeToQueue('direct', 'direct.queue', event='true')
+		exchange = con.exchange('direct')
+		queue = con.queue('direct.queue')	
 		exchange.send(i, event=event)
-		reader = con.consumer('direct.queue')	
-		_ = reader.read(timeout=500)
+		_ = queue.get(timeout=500)
 		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
 		else:
 			ASSERT_IS_NONE(_)
-		queue.remove()
-		exchange.remove()
+		con.deleteQueue('direct.queue')
+		con.deleteExchange('direct')
 		return
 
 	@Parameterized(
@@ -126,21 +111,20 @@ class TestEventBroker(Case):
 	@Order(4)
 	def testTopic(self, i, event, status):
 		con: Connection = Helper.Get('Sample')
-		exchange = con.exchange()
-		exchange.create('topic', ExchangeType.Topic)
-		queue = con.queue()
-		queue.create('topic.queue')
-		queue.bind(exchange, event='*.true')
+		con.createExchange('topic', ExchangeType.Topic)
+		con.createQueue('topic.queue')
+		con.bindExchangeToQueue('topic', 'topic.queue', event='*.true')
+		exchange = con.exchange('topic')
+		queue = con.queue('topic.queue')	
 		exchange.send(i, event=event)
-		reader = con.consumer('topic.queue')	
-		_ = reader.read(timeout=500)
+		_ = queue.get(timeout=500)
 		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
 		else:
 			ASSERT_IS_NONE(_)
-		queue.remove()
-		exchange.remove()
+		con.deleteQueue('topic.queue')
+		con.deleteExchange('topic')
 		return
 	
 	@Parameterized(
@@ -154,20 +138,57 @@ class TestEventBroker(Case):
 	@Order(5)
 	def testHeader(self, i, headers, status):
 		con: Connection = Helper.Get('Sample')
-		exchange = con.exchange()
-		exchange.create('header', ExchangeType.Header)
-		queue = con.queue()
-		queue.create('header.queue')
-		queue.bind(exchange, parameters=All(event='true'))
+		con.createExchange('header', ExchangeType.Header)
+		con.createQueue('header.queue')
+		con.bindExchangeToQueue('header', 'header.queue', parameters=All(event='true'))
+		exchange = con.exchange('header')
+		queue = con.queue('header.queue')	
 		exchange.send(i, headers=headers)
-		reader = con.consumer('header.queue')	
-		_ = reader.read(timeout=500)
+		_ = queue.get(timeout=500)
 		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
 		else:
 			ASSERT_IS_NONE(_)
-		queue.remove()
-		exchange.remove()
+		con.deleteQueue('header.queue')
+		con.deleteExchange('header')
+		return
+
+	@Parameterized(
+		{'i': True},
+		{'i': 1},
+		{'i': 1.0},
+		{'i': 'abc'},
+		{'i': [1,2,3]},
+		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}},
+	)
+	@Order(6)
+	def testConsumer(self, i):
+		class TestEventHandler(EventHandler):
+			def __init__(self, v: SimpleQueue):
+				self.v = v
+				return
+			def __call__(self, event: Event):
+				try:
+					self.v.put(event.body)
+					event.ack()
+				except RuntimeError:
+					event.nack()  # if you want requeue message
+				return
+		con: Connection = Helper.Get('Sample')
+		con.createQueue('queue')
+		queue = con.queue('queue')
+		queue.send(i)
+		q = SimpleQueue()
+		consumer = con.consumer(TestEventHandler(q))
+		def stop():
+			consumer.stop()
+			return
+		SetTimer(100, stop)
+		consumer.subs('queue')
+		consumer.run()
+		_ = q.get(timeout=0.1)
+		ASSERT_IS_EQUAL(i, _)
+		con.deleteQueue('queue')
 		return
 	
