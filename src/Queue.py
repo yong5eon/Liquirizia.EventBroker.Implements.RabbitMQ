@@ -1,28 +1,26 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import Queue as BaseQueue, Exchange
+from Liquirizia.EventBroker import Queue as BaseQueue, Gettable
 
 from Liquirizia.Serializer import SerializerHelper
+from Liquirizia.System.Util import SetTimer
 
-from .Bind import Parameters
+from .Event import Event
 
 from pika import BlockingConnection, BasicProperties
 
 from time import time
 from uuid import uuid4
 
-from typing import Union, Dict
+from typing import Optional, Dict
 
 __all__ = (
 	'Queue'
 )
 
 
-class Queue(BaseQueue): pass
-class Queue(BaseQueue):
-	"""
-	Queue of Event Broker for RabbitMQ
-	"""
+class Queue(BaseQueue, Gettable):
+	"""Queue of Event Broker for RabbitMQ"""
 	def __init__(
 		self,
 		connection: BlockingConnection,
@@ -32,6 +30,7 @@ class Queue(BaseQueue):
 		self.channel = self.connection.channel()
 		self.channel.auto_decode = False
 		self.queue = name
+		self.event = None
 		return
 
 	def __del__(self):
@@ -40,65 +39,6 @@ class Queue(BaseQueue):
 		return
 	
 	def __str__(self): return self.queue
-
-	def create(
-		self,
-		name: str,
-		expires: int = None,
-		ttl: int = None,
-		limit: int = None,
-		size: int = None,
-		durable: bool = True,
-		autodelete: bool = False,
-		errorQueue: Union[str, Queue] = None,
-		errorExchange: Union[str, Exchange] = None,
-	):
-		args = {}
-		if errorQueue:
-			args['x-dead-letter-exchange'] = ''
-			args['x-dead-letter-routing-key'] = str(errorQueue)
-		if errorExchange:
-			args['x-dead-letter-exchange'] = str(errorExchange)
-		if expires:
-			args['x-expires'] = expires
-		if ttl:
-			args['x-message-ttl'] = ttl
-		if limit:
-			args['x-max-length'] = limit
-		if size:
-			args['x-max-length-bytes'] = size
-		self.channel.queue_declare(
-			name,
-			durable=durable,
-			auto_delete=autodelete,
-			arguments=args
-		)
-		self.queue = name
-		return
-
-	def remove(self):
-		if self.queue:
-			self.channel.queue_delete(self.queue)
-		return
-
-
-	def bind(self, exchange: Union[str, Exchange], event: str = None, parameters: Parameters = None):
-		self.channel.queue_bind(
-			self.queue,
-			str(exchange),
-			routing_key=event if event else '',
-			arguments=parameters
-		)
-		return
-
-	def unbind(self, exchange: Union[str, Exchange], event: str = None, parameters: Parameters = None):
-		self.channel.queue_unbind(
-			self.queue,
-			str(exchange),
-			routing_key=event if event else '',
-			arguments=parameters,
-		)
-		return
 
 	def send(
 		self,
@@ -132,3 +72,30 @@ class Queue(BaseQueue):
 			body=body
 		)
 		return id
+
+	def get(self, timeout: int = None) -> Optional[Event]:
+		self.event = None
+		def callback(channel, method, properties, body):
+			self.event = Event(
+				channel,
+				self.queue,
+				method.consumer_tag,
+				method.delivery_tag,
+				properties,
+				body,
+			)
+			self.channel.stop_consuming()
+			return
+		timer = None
+		if timeout:
+			def stop():
+				self.channel.stop_consuming()
+				return
+			timer = SetTimer(timeout, stop)
+		self.channel.basic_consume(self.queue, callback, auto_ack=False, exclusive=False)
+		self.channel.basic_qos(0, 1, False)
+		self.channel.start_consuming()
+		if timeout:
+			timer.stop()
+		return self.event
+

@@ -4,11 +4,7 @@ from Liquirizia.EventBroker import Consumer as BaseConsumer, EventHandler
 
 from .Event import Event
 
-from Liquirizia.System.Util import SetTimer
-
 from pika import BlockingConnection
-
-from typing import Optional
 
 __all__ = (
 	'Consumer'
@@ -17,20 +13,18 @@ __all__ = (
 
 class Consumer(BaseConsumer):
 	"""Consumer of Event Broker for RabbitMQ"""
-
 	def __init__(
 		self,
 		connection: BlockingConnection,
-		queue: str,
-		handler: EventHandler = None,
+		handler: EventHandler,
 		qos: int = 1,
 	):
 		self.connection = connection
-		self.queue = queue
 		self.channel = self.connection.channel()
 		self.channel.basic_qos(0, qos, False)
 		self.channel.auto_decode = False
 		self.handler = handler
+		self.queues = set()
 		return
 
 	def __del__(self):
@@ -38,32 +32,25 @@ class Consumer(BaseConsumer):
 			self.channel.close()
 		return
 
-	def read(self, timeout: int = None) -> Optional[Event]:
-		self.event = None
-		def callback(channel, method, properties, body):
-			self.event = Event(
-				channel,
-				self.queue,
-				method.consumer_tag,
-				method.delivery_tag,
-				properties,
-				body,
-			)
-			self.channel.stop_consuming()
-			return
-		timer = None
-		if timeout:
-			def stop():
-				self.channel.stop_consuming()
-				return
-			timer = SetTimer(timeout, stop)
-		self.channel.basic_consume(self.queue, callback, auto_ack=False, exclusive=False)
-		self.channel.start_consuming()
-		if timeout:
-			timer.stop()
-		return self.event
+	def subs(self, queue:str):
+		self.channel.basic_consume(queue, Callback(self.handler, queue), auto_ack=False, exclusive=False)
+		return
 
-	def __callback__(self, channel, method, properties, body):
+	def run(self):
+		self.channel.start_consuming()
+		return
+
+	def stop(self):
+		self.channel.stop_consuming()
+		return
+
+
+class Callback(object):
+	def __init__(self, handler: EventHandler, queue: str):
+		self.handler = handler
+		self.queue = queue
+		return
+	def __call__(self, channel, method, properties, body):
 		return self.handler(Event(
 			channel,
 			self.queue,
@@ -73,12 +60,3 @@ class Consumer(BaseConsumer):
 			body,
 		))
 
-	def run(self):
-		if not self.handler: raise RuntimeError('EventHandler is not initialized')
-		self.channel.basic_consume(self.queue, self.__callback__, auto_ack=False, exclusive=False)
-		self.channel.start_consuming()
-		return
-
-	def stop(self):
-		self.channel.stop_consuming()
-		return

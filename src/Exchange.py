@@ -4,30 +4,19 @@ from Liquirizia.EventBroker import Exchange as BaseExchange
 
 from Liquirizia.Serializer import SerializerHelper
 
-from .Bind import Parameters
-
 from pika import BlockingConnection, BasicProperties
 
 from time import time
 from enum import Enum
 from uuid import uuid4
 
-from typing import Union, Dict
+from typing import Dict
 
 __all__ = (
 	'Exchange',
-	'ExchangeType',
 )
 
-class ExchangeType(str, Enum):
-	Direct = 'direct'
-	FanOut = 'fanout'
-	Topic  = 'topic'
-	Header = 'headers'
-	def __str__(self): return str(self.value)
 
-
-class Exchange(BaseExchange): pass
 class Exchange(BaseExchange):
 	"""Exchange of Event Broker for RabbitMQ"""
 	def __init__(
@@ -48,60 +37,6 @@ class Exchange(BaseExchange):
 	
 	def __str__(self): return self.exchange
 
-	def create(
-		self,
-		name: str,
-		type: ExchangeType,
-		durable: bool = True,
-		autodelete: bool = False,
-		alter: Union[str, Exchange] = None,
-	):
-		args = {}
-		if alter:
-			args['alternate-exchange'] = str(alter)
-		self.channel.exchange_declare(
-			name,
-			str(type),
-			durable=durable,
-			auto_delete=autodelete,
-			arguments=args
-		)
-		self.exchange = name
-		return
-
-	def remove(self):
-		if self.exchange:
-			self.channel.exchange_delete(self.exchange)
-		return
-
-	def bind(
-		self,
-		exchange: Union[str, Exchange],
-		event: str = None,
-		parameters: Parameters= None,
-	):
-		self.channel.exchange_bind(
-			self.exchange,
-			str(exchange),
-			routing_key=event if event else '',
-			arguments=parameters
-		)
-		return
-
-	def unbind(
-		self,
-		exchange: Union[str, Exchange],
-		event: str = None,
-		parameters: Parameters = None,
-	):
-		self.channel.exchange_unbind(
-			self.exchange,
-			str(exchange),
-			routing_key=event if event else '',
-			arguments=parameters,
-		)
-		return
-
 	def send(
 		self,
 		body,
@@ -111,10 +46,12 @@ class Exchange(BaseExchange):
 		headers: Dict = {},
 		priority: int = None,
 		expiration: int = None,
-		timestamp: int = int(time()),
+		timestamp: int = None,
 		persistent: bool = True,
-		id: str = uuid4().hex,
+		id: str = None,
 	):
+		if not timestamp: timestamp = int(time())
+		if not id: id = uuid4().hex
 		properties = BasicProperties(
 			type=event if event else '',
 			headers=headers,

@@ -34,3 +34,4 @@ class Configuration(BaseConfiguration):
 		self.timeout = timeout/1000 if timeout else None
 		self.heartbeat = int(heartbeat*2/1000) if heartbeat else None
 		return
+
