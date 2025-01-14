@@ -49,10 +49,12 @@ class Queue(BaseQueue, Gettable):
 		headers: Dict = {},
 		priority: int = None,
 		expiration: int = None,
-		timestamp: int = int(time()),
+		timestamp: int = None,
 		persistent: bool = True,
-		id: str = uuid4().hex,
+		id: str = None,
 	):
+		if not timestamp: timestamp = int(time()),
+		if not id: id = uuid4().hex,
 		properties = BasicProperties(
 			type=event if event else '',
 			headers=headers,
