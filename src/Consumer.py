@@ -2,6 +2,8 @@
 
 from Liquirizia.EventBroker import Consumer as BaseConsumer, EventHandler
 
+from .Serializer import Decoder
+
 from .Event import Event
 
 from pika import BlockingConnection
@@ -16,10 +18,12 @@ class Consumer(BaseConsumer):
 	def __init__(
 		self,
 		connection: BlockingConnection,
+		decode: Decoder,
 		handler: EventHandler,
 		qos: int = 1,
 	):
 		self.connection = connection
+		self.decode = decode
 		self.channel = self.connection.channel()
 		self.channel.basic_qos(0, qos, False)
 		self.channel.auto_decode = False
@@ -33,7 +37,7 @@ class Consumer(BaseConsumer):
 		return
 
 	def subs(self, queue:str):
-		self.channel.basic_consume(queue, Callback(self.handler, queue), auto_ack=False, exclusive=False)
+		self.channel.basic_consume(queue, Callback(self.decode, self.handler, queue), auto_ack=False, exclusive=False)
 		return
 
 	def run(self):
@@ -46,7 +50,8 @@ class Consumer(BaseConsumer):
 
 
 class Callback(object):
-	def __init__(self, handler: EventHandler, queue: str):
+	def __init__(self, decode: Decoder, handler: EventHandler, queue: str):
+		self.decode = decode
 		self.handler = handler
 		self.queue = queue
 		return
@@ -57,6 +62,5 @@ class Callback(object):
 			method.consumer_tag,
 			method.delivery_tag,
 			properties,
-			body,
+			self.decode(body, properties.content_type, properties.content_encoding),
 		))
-

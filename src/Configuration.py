@@ -2,6 +2,14 @@
 
 from Liquirizia.EventBroker import Configuration as BaseConfiguration
 
+from .Serializer import (
+	Encoder,
+	Decoder,
+	JavaScriptObjectNotationEncoder,
+	JavaScriptObjectNotationDecoder,
+)
+
+
 from pika import SSLOptions
 from ssl import create_default_context
 
@@ -24,6 +32,8 @@ class Configuration(BaseConfiguration):
 		vhost: str = '/',
 		timeout: int = None,
 		heartbeat: int = None,
+		encode: Encoder = JavaScriptObjectNotationEncoder(),
+		decode: Decoder = JavaScriptObjectNotationDecoder(),
 	):
 		self.host = host
 		self.port = port
@@ -33,5 +43,6 @@ class Configuration(BaseConfiguration):
 		self.vhost = vhost
 		self.timeout = timeout/1000 if timeout else None
 		self.heartbeat = int(heartbeat*2/1000) if heartbeat else None
+		self.encode = encode
+		self.decode = decode
 		return
-

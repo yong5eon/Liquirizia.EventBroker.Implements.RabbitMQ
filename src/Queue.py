@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventBroker import Queue as BaseQueue, Gettable
+from Liquirizia.System.Utils import SetTimer
 
-from Liquirizia.Serializer import SerializerHelper
-from Liquirizia.System.Util import SetTimer
-
+from .Serializer import Encoder, Decoder
 from .Event import Event
 
 from pika import BlockingConnection, BasicProperties
@@ -24,9 +23,13 @@ class Queue(BaseQueue, Gettable):
 	def __init__(
 		self,
 		connection: BlockingConnection,
+		encode: Encoder,
+		decode: Decoder,
 		name: str = None,
 	):
 		self.connection = connection
+		self.encode = encode
+		self.decode = decode
 		self.channel = self.connection.channel()
 		self.channel.auto_decode = False
 		self.queue = name
@@ -43,8 +46,6 @@ class Queue(BaseQueue, Gettable):
 	def send(
 		self,
 		body,
-		format: str = 'application/json',
-		charset: str = 'utf-8',
 		event: str = None,
 		headers: Dict = {},
 		priority: int = None,
@@ -53,25 +54,24 @@ class Queue(BaseQueue, Gettable):
 		persistent: bool = True,
 		id: str = None,
 	):
-		if not timestamp: timestamp = int(time()),
-		if not id: id = uuid4().hex,
+		if not timestamp: timestamp = int(time())
+		if not id: id = uuid4().hex
 		properties = BasicProperties(
 			type=event if event else '',
 			headers=headers,
-			content_type=format,
-			content_encoding=charset,
+			content_type=self.encode.format,
+			content_encoding=self.encode.charset,
 			priority=priority,
 			timestamp=timestamp,
 			expiration=expiration,
 			message_id=id,
 			delivery_mode=2 if persistent else 1,
 		)
-		body = SerializerHelper.Encode(body, format, charset) if body else None
 		self.channel.basic_publish(
 			exchange='',
 			routing_key=self.queue,
 			properties=properties,
-			body=body
+			body=self.encode(body)
 		)
 		return id
 
@@ -84,13 +84,13 @@ class Queue(BaseQueue, Gettable):
 				method.consumer_tag,
 				method.delivery_tag,
 				properties,
-				body,
+				self.decode(body, properties.content_type, properties.content_encoding),
 			)
 			self.channel.stop_consuming()
 			return
 		timer = None
 		if timeout:
-			def stop():
+			def stop(timer):
 				self.channel.stop_consuming()
 				return
 			timer = SetTimer(timeout, stop)

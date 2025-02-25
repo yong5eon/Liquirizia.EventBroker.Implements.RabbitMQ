@@ -2,7 +2,7 @@
 
 from Liquirizia.EventBroker import Exchange as BaseExchange
 
-from Liquirizia.Serializer import SerializerHelper
+from .Serializer import Encoder
 
 from pika import BlockingConnection, BasicProperties
 
@@ -22,9 +22,11 @@ class Exchange(BaseExchange):
 	def __init__(
 		self,
 		connection: BlockingConnection,
+		encode: Encoder,
 		name: str = None,
 	):
 		self.connection = connection
+		self.encode = encode
 		self.channel = self.connection.channel()
 		self.channel.auto_decode = False
 		self.exchange = name
@@ -40,8 +42,6 @@ class Exchange(BaseExchange):
 	def send(
 		self,
 		body,
-		format: str = 'application/json',
-		charset: str = 'utf-8',
 		event: str = None,
 		headers: Dict = {},
 		priority: int = None,
@@ -55,19 +55,18 @@ class Exchange(BaseExchange):
 		properties = BasicProperties(
 			type=event if event else '',
 			headers=headers,
-			content_type=format,
-			content_encoding=charset,
+			content_type=self.encode.format,
+			content_encoding=self.encode.charset,
 			priority=priority,
 			timestamp=timestamp,
 			expiration=expiration,
 			message_id=id,
 			delivery_mode=2 if persistent else 1,
 		)
-		body = SerializerHelper.Encode(body, format, charset) if body else None
 		self.channel.basic_publish(
 			exchange=self.exchange,
 			routing_key=event if event else '',
 			properties=properties,
-			body=body
+			body=self.encode(body),
 		)
 		return id

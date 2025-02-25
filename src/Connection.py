@@ -104,13 +104,13 @@ class Connection(BaseConnection, GetExchange, GetQueue, GetConsumer):
 		return
 
 	def exchange(self, exchange: str) -> Exchange:
-		return Exchange(self.connection, exchange)
+		return Exchange(self.connection, self.conf.encode, exchange)
 
 	def queue(self, queue: str) -> Queue:
-		return Queue(self.connection, queue)
+		return Queue(self.connection, self.conf.encode, self.conf.decode, queue)
 
 	def consumer(self, handler: EventHandler = None, qos: int = 1) -> Consumer:
-		return Consumer(self.connection, handler, qos=qos)
+		return Consumer(self.connection, self.conf.decode, handler, qos=qos)
 
 	def close(self):
 		if self.connection and self.connection.is_open:

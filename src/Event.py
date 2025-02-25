@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventBroker import EventHandler as BaseEventHandler
-from Liquirizia.Serializer import SerializerHelper
 
 from abc import abstractmethod
 
@@ -20,12 +19,7 @@ class Event(object):
 		self.transaction = transaction
 		self.properties = properties
 		self.props = properties.headers
-		self.payload = SerializerHelper.Decode(
-			body,
-			format=properties.content_type,
-			charset=properties.content_encoding
-		) if body else None
-		self.length = len(body) if body else 0
+		self.payload = body
 		return
 
 	def __repr__(self):
@@ -69,14 +63,6 @@ class Event(object):
 		return self.properties.type
 
 	@property
-	def format(self):
-		return self.properties.content_type
-	
-	@property
-	def charset(self):
-		return self.properties.content_encoding
-
-	@property
 	def body(self):
 		return self.payload
 
@@ -86,4 +72,3 @@ class EventHandler(BaseEventHandler):
 	@abstractmethod
 	def __call__(self, event: Event):
 		raise NotImplementedError('{} must be implemented __call__'.format(self.__class__.__name__))
-
