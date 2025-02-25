@@ -8,7 +8,7 @@ from Liquirizia.EventBroker.Implements.RabbitMQ import (
 	Event,
 	EventHandler,
 )
-from Liquirizia.System.Util import SetTimer
+from Liquirizia.System.Utils import SetTimer
 
 if __name__ == '__main__':
 
@@ -59,7 +59,7 @@ if __name__ == '__main__':
 		qos=1
 	)
 
-	def stop():
+	def stop(timer):
 		consumer.stop()
 		return
 	

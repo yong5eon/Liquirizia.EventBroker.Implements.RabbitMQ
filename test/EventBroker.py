@@ -5,7 +5,7 @@ from Liquirizia.Test import *
 from Liquirizia.EventBroker import Helper
 from Liquirizia.EventBroker.Implements.RabbitMQ import *
 
-from Liquirizia.System.Util import SetTimer
+from Liquirizia.System.Utils import SetTimer
 
 from queue import SimpleQueue
 
@@ -51,10 +51,14 @@ class TestEventBroker(Case):
 	
 	@Parameterized(
 		{'i': True},
+		{'i': False},
 		{'i': 1},
 		{'i': 1.0},
+		{'i': ''},
 		{'i': 'abc'},
+		{'i': []},
 		{'i': [1,2,3]},
+		{'i': {}},
 		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}},
 	)
 	@Order(2)
@@ -181,7 +185,7 @@ class TestEventBroker(Case):
 		queue.send(i)
 		q = SimpleQueue()
 		consumer = con.consumer(TestEventHandler(q))
-		def stop():
+		def stop(timer):
 			consumer.stop()
 			return
 		SetTimer(100, stop)
