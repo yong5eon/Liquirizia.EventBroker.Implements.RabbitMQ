@@ -15,6 +15,10 @@ from .Event import (
 	Event,
 	EventHandler,
 )
+from .Serializer import (
+	Encoder,
+	Decoder,
+)
 
 __all__ = (
 	'Configuration',
@@ -28,5 +32,7 @@ __all__ = (
 	'Consumer',
 	'Event',
 	'EventHandler',
+	'Encoder',
+	'Decoder',
 )
 
