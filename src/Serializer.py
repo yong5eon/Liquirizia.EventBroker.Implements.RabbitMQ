@@ -39,7 +39,7 @@ class Decoder(metaclass=ABCMeta):
 class JavaScriptObjectNotationEncoder(Encoder):
 	"""JavaScriptObjectNotation Encoder"""
 	def __call__(self, obj: Any) -> bytes:
-		return dumps(obj).encode(self.charset)
+		return dumps(obj, ensure_ascii=False).encode(self.charset)
 
 	@property
 	def format(self) -> str: return 'application/json'
