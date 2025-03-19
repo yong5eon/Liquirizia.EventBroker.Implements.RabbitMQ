@@ -109,7 +109,7 @@ class Connection(BaseConnection, GetExchange, GetQueue, GetConsumer):
 	def queue(self, queue: str) -> Queue:
 		return Queue(self.connection, self.conf.encode, self.conf.decode, queue)
 
-	def consumer(self, handler: EventHandler = None, qos: int = 1) -> Consumer:
+	def consumer(self, handler: EventHandler, qos: int = 1) -> Consumer:
 		return Consumer(self.connection, self.conf.decode, handler, qos=qos)
 
 	def close(self):
