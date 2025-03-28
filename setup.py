@@ -36,7 +36,7 @@ setup(
 		'Liquirizia :: EventBroker :: RabbitMQ',
 	],
 	install_requires=[
-		'Liquirizia@git+https://github.com/yong5eon/Liquirizia.git', # TODO : change PyPI
+		'Liquirizia.EventBroker@git+https://github.com/yong5eon/Liquirizia.EventBroker.git', # TODO : change PyPI
 		'pika>=1.3.2'
 	],
 	python_requires='>=3.8'
