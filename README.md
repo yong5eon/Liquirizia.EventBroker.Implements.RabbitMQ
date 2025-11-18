@@ -29,4 +29,3 @@ RabbitMQ 를 사용하는 이벤트 브로커
 ## 샘플
 
 - [Pub/Sub 샘플](sample/Sample.py)
-
