@@ -25,11 +25,11 @@ if __name__ == '__main__':
 
 	con: Connection = Helper.Get('Sample')
 	con.createExchange('topic', ExchangeType.Topic)
-	con.createQueue('queue')
+	con.createQueue('queue', maxPriority=255)
 	con.bindExchangeToQueue('topic', 'queue')
 
 	exchange = con.exchange('topic')
-	exchange.send({'a': True, 'b': 1, 'c':1.0, 'd': 'abc'})
+	exchange.send({'a': True, 'b': 1, 'c':1.0, 'd': 'abc'}, priority=1)
 	queue = con.queue('queue')
 	queue.send({'a': False, 'b': 2, 'c':2.0, 'd': 'def'})
 
@@ -41,8 +41,8 @@ if __name__ == '__main__':
 	print(e)
 	e.ack()
 
-	exchange.send({'a': True, 'b': 1, 'c':1.0, 'd': 'abc'})
-	queue.send({'a': False, 'b': 2, 'c':2.0, 'd': 'def'})
+	exchange.send({'a': True, 'b': 1, 'c':1.0, 'd': 'abc'}, priority=0)
+	queue.send({'a': False, 'b': 2, 'c':2.0, 'd': 'def'}, priority=255)
 
 	class SampleEventHandler(EventHandler):
 		def __call__(self, event: Event):
