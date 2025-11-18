@@ -183,6 +183,7 @@ class Connection(BaseConnection, GetExchange, GetQueue, GetConsumer):
 		ttl: int = None,
 		limit: int = None,
 		size: int = None,
+		maxPriority: int = None,
 		durable: bool = True,
 		autodelete: bool = False,
 		errorQueue: Union[str, Queue] = None,
@@ -202,6 +203,8 @@ class Connection(BaseConnection, GetExchange, GetQueue, GetConsumer):
 			args['x-max-length'] = limit
 		if size:
 			args['x-max-length-bytes'] = size
+		if maxPriority:
+			args['x-max-priority'] = maxPriority
 		channel = self.connection.channel()
 		channel.queue_declare(
 			name,
