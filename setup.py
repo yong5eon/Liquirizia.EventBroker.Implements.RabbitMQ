@@ -25,7 +25,6 @@ setup(
 	package_dir=DIRS,
 	include_package_data=False,
 	classifiers=[
-		'Programming Language :: Python :: 3.8',
 		'Programming Language :: Python :: 3.9',
 		'Programming Language :: Python :: 3.10',
 		'Programming Language :: Python :: 3.11',
@@ -39,5 +38,5 @@ setup(
 		'Liquirizia.EventBroker@git+https://github.com/yong5eon/Liquirizia.EventBroker.git', # TODO : change PyPI
 		'pika>=1.3.2'
 	],
-	python_requires='>=3.8'
+	python_requires='>=3.9'
 )
