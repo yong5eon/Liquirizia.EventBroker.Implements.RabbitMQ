@@ -43,11 +43,14 @@ if __name__ == '__main__':
 
 	exchange.send({'a': True, 'b': 1, 'c':1.0, 'd': 'abc'}, priority=0)
 	queue.send({'a': False, 'b': 2, 'c':2.0, 'd': 'def'}, priority=255)
+	exchange.send({'a': True, 'b': 1, 'c':1.0, 'd': 'abc'})
+	queue.send({'a': False, 'b': 1, 'c':3.0, 'd': 'def'})
 
 	class SampleEventHandler(EventHandler):
 		def __call__(self, event: Event):
 			try:
 				print(event.body)
+				print(event.priority)
 				event.ack()
 			except RuntimeError:
 				event.nack()  # if you want requeue message
