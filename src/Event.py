@@ -65,6 +65,12 @@ class Event(object):
 	@property
 	def body(self):
 		return self.payload
+	
+	@property
+	def priority(self):
+		if not hasattr(self.properties, 'priority'):
+			return None
+		return self.properties.priority
 
 
 class EventHandler(BaseEventHandler):
