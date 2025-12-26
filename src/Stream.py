@@ -1,27 +1,25 @@
 # -*- coding: utf-8 -*-
 
 from Liquirizia.EventBroker import (
-	Queue as BaseQueue,
-	Poppable,
+	Stream as BaseStream, Readable
 )
-
 from .Serializer import Encoder, Decoder
 from .Event import Event
 
 from pika import BlockingConnection, BasicProperties
 
-from time import time, sleep
+from time import time
 from uuid import uuid4
 
-from typing import Optional, Dict
+from typing import Dict, Iterable
 
 __all__ = (
 	'Queue'
 )
 
 
-class Queue(BaseQueue, Poppable):
-	"""Queue of Event Broker for RabbitMQ"""
+class Stream(BaseStream, Readable):
+	"""Stream of Event Broker for RabbitMQ"""
 	def __init__(
 		self,
 		connection: BlockingConnection,
@@ -50,10 +48,7 @@ class Queue(BaseQueue, Poppable):
 		body,
 		event: str = None,
 		headers: Dict = {},
-		priority: int = None,
-		expiration: int = None,
 		timestamp: int = None,
-		persistent: bool = True,
 		id: str = None,
 	):
 		if not timestamp: timestamp = int(time())
@@ -63,11 +58,8 @@ class Queue(BaseQueue, Poppable):
 			headers=headers,
 			content_type=self.encode.format,
 			content_encoding=self.encode.charset,
-			priority=priority,
 			timestamp=timestamp,
-			expiration=expiration,
 			message_id=id,
-			delivery_mode=2 if persistent else 1,
 		)
 		self.channel.basic_publish(
 			exchange='',
@@ -77,22 +69,38 @@ class Queue(BaseQueue, Poppable):
 		)
 		return id
 
-	def pop(self, timeout: int = None) -> Optional[Event]:
+	def read(self, offset: int = 0, timeout: int = None) -> Iterable[Event]:
 		channel = self.channel
 		channel.basic_qos(0, 1, False)
+
 		deadline = time() + (timeout / 1000) if timeout else None
-		while True:
-			method, properties, body = channel.basic_get(queue=self.queue, auto_ack=False)
-			if method:
-				return Event(
+
+		try:
+			for method, properties, body in channel.consume(
+				queue=self.queue,
+				auto_ack=False,
+				inactivity_timeout=1,
+				arguments={'x-stream-offset': offset},
+			):
+				if method is None:
+					if deadline and time() >= deadline:
+						break
+					continue
+
+				event = Event(
 					channel,
 					self.queue,
-					None,
+					method.consumer_tag,
 					method.delivery_tag,
 					properties,
 					self.decode(body, properties.content_type, properties.content_encoding),
 				)
-			if deadline and time() >= deadline:
-				break
-			sleep(0.1)
-		return
+
+				try:
+					yield event
+					channel.basic_ack(delivery_tag=method.delivery_tag)
+				except Exception:
+					channel.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+					raise
+		finally:
+			channel.cancel()

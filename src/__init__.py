@@ -10,6 +10,7 @@ from .Connection import (
 )
 from .Exchange import Exchange
 from .Queue import Queue
+from .Stream import Stream
 from .Consumer import Consumer
 from .Event import (
 	Event,
@@ -29,6 +30,7 @@ __all__ = (
 	'Any',
 	'Exchange',
 	'Queue',
+	'Stream',
 	'Consumer',
 	'Event',
 	'EventHandler',

@@ -34,10 +34,10 @@ if __name__ == '__main__':
 	queue.send({'a': False, 'b': 2, 'c':2.0, 'd': 'def'})
 
 	reader = con.queue('queue')
-	e = reader.get()
+	e = reader.pop()
 	print(e)
 	e.ack()
-	e = reader.get()
+	e = reader.pop()
 	print(e)
 	e.ack()
 
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 		consumer.stop()
 		return
 	
-	SetTimer(100, stop)
+	SetTimer(1000, stop)
 
 	consumer.subs('queue')
 	consumer.run()

@@ -4,6 +4,7 @@ from Liquirizia.EventBroker import (
 	Connection as BaseConnection, 
 	GetExchange,
 	GetQueue,
+	GetStream,
 	GetConsumer,
 )
 
@@ -11,6 +12,7 @@ from .Configuration import Configuration
 
 from .Exchange import Exchange
 from .Queue import Queue
+from .Stream import Stream
 from .Consumer import Consumer
 from .Event import EventHandler
 
@@ -77,7 +79,7 @@ class Parameters(Mapping):
 		return self.args.values()
 
 
-class Connection(BaseConnection, GetExchange, GetQueue, GetConsumer):
+class Connection(BaseConnection, GetExchange, GetQueue, GetStream, GetConsumer):
 	"""Connection of Event Broker for RabbitMQ"""
 	def __init__(self, conf: Configuration):
 		self.conf = conf
@@ -109,8 +111,11 @@ class Connection(BaseConnection, GetExchange, GetQueue, GetConsumer):
 	def queue(self, queue: str) -> Queue:
 		return Queue(self.connection, self.conf.encode, self.conf.decode, queue)
 
-	def consumer(self, handler: EventHandler, qos: int = 1) -> Consumer:
-		return Consumer(self.connection, self.conf.decode, handler, qos=qos)
+	def stream(self, queue: str) -> Stream:
+		return Stream(self.connection, self.conf.encode, self.conf.decode, queue)
+
+	def consumer(self, handler: EventHandler, qos: int = 1, offset: int = None) -> Consumer:
+		return Consumer(self.connection, self.conf.decode, handler, qos=qos, offset=offset)
 
 	def close(self):
 		if self.connection and self.connection.is_open:
@@ -249,6 +254,32 @@ class Connection(BaseConnection, GetExchange, GetQueue, GetConsumer):
 			routing_key=event if event else '',
 			arguments=parameters,
 		)
+		return
+	
+	def createStream(
+		self,
+		name: str,
+		size: int = None,
+		durable: bool = True,
+		autodelete: bool = False,
+	):
+		channel = self.connection.channel()
+		args = {
+			'x-queue-type': 'stream',
+		}
+		if size:
+			args['x-max-length-bytes'] = size
+		channel.queue_declare(
+			name,
+			durable=durable,
+			auto_delete=autodelete,
+			arguments=args
+		)
+		return
+	
+	def deleteStream(self, queue: str):
+		channel = self.connection.channel()
+		channel.queue_delete(queue)
 		return
 
 

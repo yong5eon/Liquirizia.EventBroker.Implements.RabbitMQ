@@ -21,12 +21,14 @@ class Consumer(BaseConsumer):
 		decode: Decoder,
 		handler: EventHandler,
 		qos: int = 1,
+		offset: int = None,
 	):
 		self.connection = connection
 		self.decode = decode
 		self.channel = self.connection.channel()
 		self.channel.basic_qos(0, qos, False)
 		self.channel.auto_decode = False
+		self.offset = offset
 		self.handler = handler
 		self.queues = set()
 		return
@@ -37,7 +39,13 @@ class Consumer(BaseConsumer):
 		return
 
 	def subs(self, queue:str):
-		self.channel.basic_consume(queue, Callback(self.decode, self.handler, queue), auto_ack=False, exclusive=False)
+		self.channel.basic_consume(
+			queue,
+			Callback(self.decode, self.handler, queue),
+			auto_ack=False,
+			exclusive=False,
+			arguments={'x-stream-offset': self.offset} if self.offset is not None else None
+		)
 		return
 
 	def run(self):
