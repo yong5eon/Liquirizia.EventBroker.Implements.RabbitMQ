@@ -43,10 +43,27 @@ class TestEventBroker(Case):
 		queue = con.queue('queue')
 		queue.send(i)
 		reader = con.queue('queue')
-		_ = reader.get()
+		_ = reader.pop()
 		_.ack()
 		ASSERT_IS_EQUAL(i, _.body)
 		con.deleteQueue('queue')
+		return
+	
+	@Order(2)
+	def testStream(self):
+		con: Connection = Helper.Get('Sample')
+		con.createStream('stream')
+		stream = con.stream('stream')
+		for i in range(5):
+			stream.send(i)
+		values = []
+		try:
+			for event in stream.read(timeout=1000):
+				values.append(event.body)
+		except KeyboardInterrupt:
+			pass
+		ASSERT_IS_EQUAL([0,1,2,3,4], values)
+		con.deleteStream('stream')
 		return
 	
 	@Parameterized(
@@ -61,8 +78,8 @@ class TestEventBroker(Case):
 		{'i': {}},
 		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}},
 	)
-	@Order(2)
-	def testFanout(self, i):
+	@Order(11)
+	def testExchangeFanout(self, i):
 		con: Connection = Helper.Get('Sample')
 		con.createExchange('fanout', ExchangeType.Direct)
 		con.createQueue('fanout.queue')
@@ -70,7 +87,7 @@ class TestEventBroker(Case):
 		exchange = con.exchange('fanout')
 		queue = con.queue('fanout.queue')	
 		exchange.send(i)
-		_ = queue.get()
+		_ = queue.pop()
 		_.ack()
 		ASSERT_IS_EQUAL(i, _.body)
 		con.deleteQueue('fanout.queue')
@@ -85,8 +102,8 @@ class TestEventBroker(Case):
 		{'i': [1,2,3], 'event': 'false', 'status': False},
 		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}, 'event': 'true', 'status': True},
 	)
-	@Order(3)
-	def testDirect(self, i, event, status):
+	@Order(12)
+	def testExchangeDirect(self, i, event, status):
 		con: Connection = Helper.Get('Sample')
 		con.createExchange('direct', ExchangeType.Direct)
 		con.createQueue('direct.queue')
@@ -94,7 +111,7 @@ class TestEventBroker(Case):
 		exchange = con.exchange('direct')
 		queue = con.queue('direct.queue')	
 		exchange.send(i, event=event)
-		_ = queue.get(timeout=500)
+		_ = queue.pop(timeout=500)
 		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
@@ -112,8 +129,8 @@ class TestEventBroker(Case):
 		{'i': [1,2,3], 'event': 'e.false', 'status': False},
 		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}, 'event': 'f.true', 'status': True},
 	)
-	@Order(4)
-	def testTopic(self, i, event, status):
+	@Order(13)
+	def testExchangeTopic(self, i, event, status):
 		con: Connection = Helper.Get('Sample')
 		con.createExchange('topic', ExchangeType.Topic)
 		con.createQueue('topic.queue')
@@ -121,7 +138,7 @@ class TestEventBroker(Case):
 		exchange = con.exchange('topic')
 		queue = con.queue('topic.queue')	
 		exchange.send(i, event=event)
-		_ = queue.get(timeout=500)
+		_ = queue.pop(timeout=500)
 		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
@@ -139,8 +156,8 @@ class TestEventBroker(Case):
 		{'i': [1,2,3], 'headers': {'event': 'false'}, 'status': False},
 		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}, 'headers': {'event': 'true'}, 'status': True},
 	)
-	@Order(5)
-	def testHeader(self, i, headers, status):
+	@Order(14)
+	def testExchangeHeader(self, i, headers, status):
 		con: Connection = Helper.Get('Sample')
 		con.createExchange('header', ExchangeType.Header)
 		con.createQueue('header.queue')
@@ -148,7 +165,7 @@ class TestEventBroker(Case):
 		exchange = con.exchange('header')
 		queue = con.queue('header.queue')	
 		exchange.send(i, headers=headers)
-		_ = queue.get(timeout=500)
+		_ = queue.pop(timeout=500)
 		if status:
 			ASSERT_IS_EQUAL(i, _.body)
 			_.ack()
@@ -166,7 +183,7 @@ class TestEventBroker(Case):
 		{'i': [1,2,3]},
 		{'i': {'a': True, 'b':1, 'c': 1.0, 'd': 'abc'}},
 	)
-	@Order(6)
+	@Order(21)
 	def testConsumer(self, i):
 		class TestEventHandler(EventHandler):
 			def __init__(self, v: SimpleQueue):
@@ -180,19 +197,51 @@ class TestEventBroker(Case):
 					event.nack()  # if you want requeue message
 				return
 		con: Connection = Helper.Get('Sample')
-		con.createQueue('queue')
-		queue = con.queue('queue')
+		con.createQueue('consumer.queue')
+		queue = con.queue('consumer.queue')
 		queue.send(i)
 		q = SimpleQueue()
 		consumer = con.consumer(TestEventHandler(q))
 		def stop(timer):
 			consumer.stop()
 			return
-		SetTimer(100, stop)
-		consumer.subs('queue')
+		SetTimer(1000, stop)
+		consumer.subs('consumer.queue')
 		consumer.run()
 		_ = q.get(timeout=0.1)
 		ASSERT_IS_EQUAL(i, _)
-		con.deleteQueue('queue')
+		con.deleteQueue('consumer.queue')
 		return
-	
+
+	@Order(22)
+	def testConsumerStream(self):
+		class TestEventHandler(EventHandler):
+			def __init__(self, v: SimpleQueue):
+				self.v = v
+				return
+			def __call__(self, event: Event):
+				try:
+					self.v.put(event.body)
+					event.ack()
+				except RuntimeError:
+					event.nack()  # if you want requeue message
+				return
+		con: Connection = Helper.Get('Sample')
+		con.createStream('consumer.stream')
+		stream = con.stream('consumer.stream')
+		for i in range(5):
+			stream.send(i)
+		q = SimpleQueue()
+		consumer = con.consumer(TestEventHandler(q), offset=0)
+		def stop(timer):
+			consumer.stop()
+			return
+		SetTimer(1000, stop)
+		consumer.subs('consumer.stream')
+		consumer.run()
+		values = []
+		while not q.empty():
+			values.append(q.get())
+		ASSERT_IS_EQUAL([0,1,2,3,4], values)
+		con.deleteStream('consumer.stream')
+		return
