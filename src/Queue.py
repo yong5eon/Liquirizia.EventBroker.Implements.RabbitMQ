@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from Liquirizia.EventBroker import Queue as BaseQueue, Gettable
-from Liquirizia.System.Utils import SetTimer
+from Liquirizia.EventBroker import (
+	Queue as BaseQueue,
+	Poppable,
+)
 
 from .Serializer import Encoder, Decoder
 from .Event import Event
 
 from pika import BlockingConnection, BasicProperties
 
-from time import time
+from time import time, sleep
 from uuid import uuid4
 
 from typing import Optional, Dict
@@ -18,7 +20,7 @@ __all__ = (
 )
 
 
-class Queue(BaseQueue, Gettable):
+class Queue(BaseQueue, Poppable):
 	"""Queue of Event Broker for RabbitMQ"""
 	def __init__(
 		self,
@@ -75,29 +77,22 @@ class Queue(BaseQueue, Gettable):
 		)
 		return id
 
-	def get(self, timeout: int = None) -> Optional[Event]:
-		self.event = None
-		def callback(channel, method, properties, body):
-			self.event = Event(
-				channel,
-				self.queue,
-				method.consumer_tag,
-				method.delivery_tag,
-				properties,
-				self.decode(body, properties.content_type, properties.content_encoding),
-			)
-			self.channel.stop_consuming()
-			return
-		timer = None
-		if timeout:
-			def stop(timer):
-				self.channel.stop_consuming()
-				return
-			timer = SetTimer(timeout, stop)
-		self.channel.basic_consume(self.queue, callback, auto_ack=False, exclusive=False)
-		self.channel.basic_qos(0, 1, False)
-		self.channel.start_consuming()
-		if timeout:
-			timer.stop()
-		return self.event
-
+	def pop(self, timeout: int = None) -> Optional[Event]:
+		channel = self.channel
+		channel.basic_qos(0, 1, False)
+		deadline = time() + (timeout / 1000) if timeout else None
+		while True:
+			method, properties, body = channel.basic_get(queue=self.queue, auto_ack=False)
+			if method:
+				return Event(
+					channel,
+					self.queue,
+					None,
+					method.delivery_tag,
+					properties,
+					self.decode(body, properties.content_type, properties.content_encoding),
+				)
+			if deadline and time() >= deadline:
+				break
+			sleep(0.1)
+		return
